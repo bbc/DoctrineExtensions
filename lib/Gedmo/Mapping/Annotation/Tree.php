@@ -23,4 +23,7 @@ final class Tree extends Annotation
 
     /** @var integer */
     public $lockingTimeout = 3;
+
+    /** @var bool */
+    public $cascadeDeletes = true;
 }

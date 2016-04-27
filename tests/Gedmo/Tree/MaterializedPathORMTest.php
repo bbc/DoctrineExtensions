@@ -16,6 +16,7 @@ use Tool\BaseTestCaseORM;
 class MaterializedPathORMTest extends BaseTestCaseORM
 {
     const CATEGORY = "Tree\\Fixture\\MPCategory";
+    const CATEGORY_WITHOUT_CASCADING_DELETE = "Tree\\Fixture\\MPCategoryWithNonCascadingDelete";
 
     protected $config;
     protected $listener;
@@ -108,6 +109,65 @@ class MaterializedPathORMTest extends BaseTestCaseORM
     /**
      * @test
      */
+    public function nonCascadingRemove()
+    {
+        // Insert
+        $category = $this->createNonCascadingDeleteCategory();
+        $category->setTitle('1');
+        $category2 = $this->createNonCascadingDeleteCategory();
+        $category2->setTitle('2');
+        $category3 = $this->createNonCascadingDeleteCategory();
+        $category3->setTitle('3');
+        $category4 = $this->createNonCascadingDeleteCategory();
+        $category4->setTitle('4');
+        $category5 = $this->createNonCascadingDeleteCategory();
+        $category5->setTitle('5');
+
+        $category2->setParent($category);
+        $category3->setParent($category2);
+        $category4->setParent($category3);
+
+        $this->em->persist($category5);
+        $this->em->persist($category4);
+        $this->em->persist($category3);
+        $this->em->persist($category2);
+        $this->em->persist($category);
+        $this->em->flush();
+
+        $this->em->refresh($category);
+        $this->em->refresh($category2);
+        $this->em->refresh($category3);
+        $this->em->refresh($category4);
+        $this->em->refresh($category5);
+
+        // Remove
+        $this->em->remove($category2);
+        $this->em->remove($category);
+        $this->em->flush();
+
+        $result = $this->em->createQueryBuilder()->select('c')->from(self::CATEGORY_WITHOUT_CASCADING_DELETE, 'c')->getQuery()->execute();
+
+        $this->assertCount(3, $result);
+
+        $cat3result = $result[2];
+        $cat4result = $result[1];
+        $cat5result = $result[0];
+
+        $this->assertEquals('3', $cat3result->getTitle());
+        $this->assertEquals(1, $cat3result->getLevel());
+        $this->assertNull($cat3result->getParent());
+
+        $this->assertEquals('4', $cat4result->getTitle());
+        $this->assertEquals(2, $cat4result->getLevel());
+        $this->assertEquals('3', $cat4result->getParent()->getTitle());
+
+        $this->assertEquals('5', $cat5result->getTitle());
+        $this->assertNull($cat5result->getParent());
+    }
+
+    /**
+     * @test
+     */
     public function useOfSeparatorInPathSourceShouldThrowAnException()
     {
         $this->setExpectedException('Gedmo\Exception\RuntimeException');
@@ -117,6 +177,13 @@ class MaterializedPathORMTest extends BaseTestCaseORM
 
         $this->em->persist($category);
         $this->em->flush();
+    }
+
+    public function createNonCascadingDeleteCategory()
+    {
+        $class = self::CATEGORY_WITHOUT_CASCADING_DELETE;
+
+        return new $class();
     }
 
     public function createCategory()
@@ -130,6 +197,7 @@ class MaterializedPathORMTest extends BaseTestCaseORM
     {
         return array(
             self::CATEGORY,
+            self::CATEGORY_WITHOUT_CASCADING_DELETE,
         );
     }
 

@@ -186,6 +186,10 @@ abstract class AbstractMaterializedPath implements Strategy
     public function processPreRemove($om, $node)
     {
         $this->processPreLockingActions($om, $node, self::ACTION_REMOVE);
+        
+        $meta = $om->getClassMetadata(get_class($node));
+        $config = $this->listener->getConfiguration($om, $meta->name);
+        $this->reparentChildNodes($om, $meta, $config, $node);
     }
 
     /**
@@ -503,6 +507,19 @@ abstract class AbstractMaterializedPath implements Strategy
      * @return void
      */
     abstract public function removeNode($om, $meta, $config, $node);
+
+    /**
+     * Set any child nodes parent to null to prepare for
+     * deletion of parent.
+     *
+     * @param ObjectManager $om
+     * @param object        $meta   - Metadata
+     * @param object        $config - config
+     * @param object        $node   - node to remove
+     *
+     * @return void
+     */
+    abstract public function reparentChildNodes($om, $meta, $config, $node);
 
     /**
      * Returns children of the node with its original path

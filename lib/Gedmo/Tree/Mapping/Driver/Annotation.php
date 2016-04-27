@@ -99,6 +99,7 @@ class Annotation extends AbstractAnnotationDriver
             $config['strategy'] = $annot->type;
             $config['activate_locking'] = $annot->activateLocking;
             $config['locking_timeout'] = (int) $annot->lockingTimeout;
+            $config['cascade_deletes'] = $annot->cascadeDeletes;
 
             if ($config['locking_timeout'] < 1) {
                 throw new InvalidMappingException("Tree Locking Timeout must be at least of 1 second.");
