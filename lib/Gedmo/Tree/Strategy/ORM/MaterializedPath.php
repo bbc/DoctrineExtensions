@@ -2,6 +2,8 @@
 
 namespace Gedmo\Tree\Strategy\ORM;
 
+use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\UnitOfWork;
 use Gedmo\Tree\Strategy\AbstractMaterializedPath;
 use Gedmo\Tool\Wrapper\AbstractWrapper;
 
@@ -19,6 +21,9 @@ class MaterializedPath extends AbstractMaterializedPath
      */
     public function removeNode($om, $meta, $config, $node)
     {
+        if (!$config['cascade_deletes']) {
+            return;
+        }
         $uow = $om->getUnitOfWork();
         $wrapped = AbstractWrapper::wrap($node, $om);
 
@@ -34,6 +39,40 @@ class MaterializedPath extends AbstractMaterializedPath
 
         foreach ($results as $node) {
             $uow->scheduleForDelete($node);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function reparentChildNodes($om, $meta, $config, $node)
+    {
+        if ($config['cascade_deletes']) {
+            return;
+        }
+        $uow = $om->getUnitOfWork();
+
+        if (method_exists($meta, 'getIdentifierValue')) {
+            $identifier = $meta->getIdentifierValue($node);
+        } else {
+            $identifierProp = $meta->getReflectionProperty($meta->getSingleIdentifierFieldName());
+            $identifierProp->setAccessible(true);
+            $identifier = $identifierProp->getValue($node);
+        }
+        // Set immediate child nodes parent to null
+        $qb = $om->createQueryBuilder();
+
+        $qb->select('e')
+            ->from($config['useObjectClass'], 'e')
+            ->where('e.'.$config['parent'].' = :id')
+            ->setParameter('id', $identifier);
+        $results = $qb->getQuery()
+            ->execute();
+
+        foreach ($results as $node) {
+            $wrappedNode = AbstractWrapper::wrap($node, $om);
+            $wrappedNode->setPropertyValue($config['parent'], null);
+            $uow->scheduleForUpdate($node);
         }
     }
 

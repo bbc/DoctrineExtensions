@@ -55,6 +55,8 @@ class Yaml extends File implements Driver
                     $classMapping['tree']['activateLocking'] : false;
                 $config['locking_timeout'] = isset($classMapping['tree']['lockingTimeout']) ?
                     (int) $classMapping['tree']['lockingTimeout'] : 3;
+                $config['cascade_deletes'] = isset($classMapping['tree']['cascadeDeletes']) ?
+                    $classMapping['tree']['cascadeDeletes'] : true;
 
                 if ($config['locking_timeout'] < 1) {
                     throw new InvalidMappingException("Tree Locking Timeout must be at least of 1 second.");

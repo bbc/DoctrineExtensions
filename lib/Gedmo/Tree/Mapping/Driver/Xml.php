@@ -50,6 +50,7 @@ class Xml extends BaseXml
             }
             $config['strategy'] = $strategy;
             $config['activate_locking'] = $this->_getAttribute($xml->tree, 'activate-locking') === 'true' ? true : false;
+            $config['cascade_deletes'] = $this->_getAttribute($xml->tree, 'cascade-deletes') === 'false' ? false : true;
 
             if ($lockingTimeout = $this->_getAttribute($xml->tree, 'locking-timeout')) {
                 $config['locking_timeout'] = (int) $lockingTimeout;
