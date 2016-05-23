@@ -49,6 +49,9 @@
         "symfony/yaml": "~2.6|~3.0",
         "phpunit/phpunit": "*"
     },
+    "replace": {
+        "gedmo/doctrine-extensions": "2.*"
+    },
     "suggest": {
         "doctrine/mongodb-odm": "to use the extensions with the MongoDB ODM",
         "doctrine/orm": "to use the extensions with the ORM"
