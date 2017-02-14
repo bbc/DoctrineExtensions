@@ -162,7 +162,6 @@ class LoggableListener extends MappedEventSubscriber
             $identifiers = $wrapped->getIdentifier(false);
             foreach ($this->pendingRelatedObjects[$oid] as $props) {
                 $logEntry = $props['log'];
-                $logEntryMeta = $om->getClassMetadata(get_class($logEntry));
                 $oldData = $data = $logEntry->getData();
                 $data[$props['field']] = $identifiers;
 
@@ -245,6 +244,14 @@ class LoggableListener extends MappedEventSubscriber
                 continue;
             }
             $value = $changes[1];
+            if (method_exists($meta, 'isCollectionValuedEmbed') && $meta->isCollectionValuedEmbed($field) && $value) {
+                $embedValues = array();
+                foreach ($value as $embedValue) {
+                    $wrapped = AbstractWrapper::wrap($embedValue, $om);
+                    $embedValues[] = $this->getObjectChangeSetData($ea, $embedValue, $logEntry);
+                }
+                $value = $embedValues;
+            }
             if ($meta->isSingleValuedAssociation($field) && $value) {
                 if ($wrapped->isEmbeddedAssociation($field)) {
                     $value = $this->getObjectChangeSetData($ea, $value, $logEntry);

@@ -19,14 +19,14 @@ class Log
     private $id;
 
     /**
-     * @ODM\String
+     * @ODM\Field(type="string")
      */
     private $content;
 
     /**
      * @var string $created
      *
-     * @ODM\String
+     * @ODM\Field(type="string")
      * @Gedmo\Blameable(on="create")
      */
     private $created;
@@ -34,7 +34,7 @@ class Log
     /**
      * @var int $updated
      *
-     * @ODM\Int
+     * @ODM\Field(type="int")
      * @Gedmo\Blameable
      */
     private $updated;

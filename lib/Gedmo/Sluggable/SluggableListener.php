@@ -4,6 +4,7 @@ namespace Gedmo\Sluggable;
 
 use Doctrine\Common\EventArgs;
 use Gedmo\Mapping\MappedEventSubscriber;
+use Gedmo\Sluggable\Handler\SlugHandlerWithUniqueCallbackInterface;
 use Gedmo\Sluggable\Mapping\Event\SluggableAdapter;
 use Doctrine\Common\Persistence\ObjectManager;
 use Gedmo\Tool\Wrapper\AbstractWrapper;
@@ -348,7 +349,7 @@ class SluggableListener extends MappedEventSubscriber
                 // Step 3: stylize the slug
                 switch ($options['style']) {
                     case 'camel':
-                        $quotedSeparator = preg_quote($options['separator']);
+                        $quotedSeparator = preg_quote($options['separator'], '/');
                         $slug = preg_replace_callback('/^[a-z]|'.$quotedSeparator.'[a-z]/smi', function ($m) {
                             return strtoupper($m[0]);
                         }, $slug);
@@ -382,6 +383,16 @@ class SluggableListener extends MappedEventSubscriber
 
                 if (isset($mapping['nullable']) && $mapping['nullable'] && !$slug) {
                     $slug = null;
+                }
+
+                // notify slug handlers --> beforeMakingUnique
+                if ($hasHandlers) {
+                    foreach ($options['handlers'] as $class => $handlerOptions) {
+                        $handler = $this->getHandler($class);
+                        if ($handler instanceof SlugHandlerWithUniqueCallbackInterface) {
+                            $handler->beforeMakingUnique($ea, $options, $object, $slug);
+                        }
+                    }
                 }
 
                 // make unique slug if requested
@@ -434,10 +445,12 @@ class SluggableListener extends MappedEventSubscriber
         // collect similar persisted slugs during this flush
         if (isset($this->persisted[$class = $ea->getRootObjectClass($meta)])) {
             foreach ($this->persisted[$class] as $obj) {
-                if ($base !== false && $meta->getReflectionProperty($config['unique_base'])->getValue($obj) !== $base) {
+                $similarMeta = $om->getClassMetadata(get_class($obj));
+                if ($base !== false && $similarMeta->getReflectionProperty($config['unique_base'])->getValue($obj) !== $base) {
                     continue; // if unique_base field is not the same, do not take slug as similar
                 }
-                $slug = $meta->getReflectionProperty($config['slug'])->getValue($obj);
+                $slugRefl = $similarMeta->getReflectionProperty($config['slug']);
+                $slug = $slugRefl->getValue($obj);
                 $quotedPreferredSlug = preg_quote($preferredSlug);
                 if (preg_match("@^{$quotedPreferredSlug}.*@smi", $slug)) {
                     $similarPersisted[] = array($config['slug'] => $slug);

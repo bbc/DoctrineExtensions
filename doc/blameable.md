@@ -212,7 +212,7 @@ class Article
     /**
      * @var User $contentChangedBy
      *
-     * @Gedmo\Blameable(on="change", fields={"title", "body"})
+     * @Gedmo\Blameable(on="change", field={"title", "body"})
      * @ORM\ManyToOne(targetEntity="Path\To\Entity\User")
      * @ORM\JoinColumn(referencedColumnName="id")
      */
@@ -280,14 +280,14 @@ class Article
     private $id;
 
     /**
-     * @ODM\String
+     * @ODM\Field(type="string")
      */
     private $title;
 
     /**
      * @var string $createdBy
      *
-     * @ODM\String
+     * @ODM\Field(type="string")
      * @Gedmo\Blameable(on="create")
      */
     private $createdBy;
@@ -295,7 +295,7 @@ class Article
     /**
      * @var string $updatedBy
      *
-     * @ODM\String
+     * @ODM\Field(type="string")
      * @Gedmo\Blameable
      */
     private $updatedBy;

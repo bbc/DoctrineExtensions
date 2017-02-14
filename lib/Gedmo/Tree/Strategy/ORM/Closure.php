@@ -170,7 +170,7 @@ class Closure implements Strategy
      */
     public function processPrePersist($em, $node)
     {
-        $this->pendingChildNodeInserts[spl_object_hash($node)] = $node;
+        $this->pendingChildNodeInserts[spl_object_hash($em)][spl_object_hash($node)] = $node;
     }
 
     /**
@@ -237,8 +237,9 @@ class Closure implements Strategy
     public function processPostPersist($em, $entity, AdapterInterface $ea)
     {
         $uow = $em->getUnitOfWork();
+        $emHash = spl_object_hash($em);
 
-        while ($node = array_shift($this->pendingChildNodeInserts)) {
+        while ($node = array_shift($this->pendingChildNodeInserts[$emHash])) {
             $meta = $em->getClassMetadata(get_class($node));
             $config = $this->listener->getConfiguration($em, $meta->name);
 
@@ -254,12 +255,6 @@ class Closure implements Strategy
             $descendantColumnName = $this->getJoinColumnFieldName($em->getClassMetadata($config['closure'])->getAssociationMapping('descendant'));
             $depthColumnName = $em->getClassMetadata($config['closure'])->getColumnName('depth');
 
-            $referenceMapping = $em->getClassMetadata($config['closure'])->getAssociationMapping('ancestor');
-            $referenceIdField = $referenceMapping['sourceToTargetKeyColumns'][$ancestorColumnName];
-            
-            //get the field of the entity when the column_name is not the same name of the entity field
-            $referenceId  = $em->getClassMetadata($config['useObjectClass'])->getFieldForColumn($referenceIdField);
-             
             $entries = array(
                 array(
                     $ancestorColumnName => $nodeId,
@@ -278,7 +273,7 @@ class Closure implements Strategy
 
                 foreach ($ancestors as $ancestor) {
                     $entries[] = array(
-                        $ancestorColumnName => $ancestor['ancestor'][$referenceId],
+                        $ancestorColumnName => $ancestor['ancestor'][$identifier],
                         $descendantColumnName => $nodeId,
                         $depthColumnName => $ancestor['depth'] + 1,
                     );
@@ -351,7 +346,7 @@ class Closure implements Strategy
             $sql .= 'GROUP BY c.descendant';
 
             $levelsAssoc = $em->getConnection()->executeQuery($sql, array(array_keys($this->pendingNodesLevelProcess)), array($type))->fetchAll(\PDO::FETCH_NUM);
-            
+
             //create key pair array with resultset
             $levels = array();
             foreach( $levelsAssoc as $level )
@@ -448,7 +443,7 @@ class Closure implements Strategy
             }
             // using subquery directly, sqlite acts unfriendly
             $query = "DELETE FROM {$table} WHERE id IN (".implode(', ', $ids).")";
-            if (!$conn->executeQuery($query)) {
+            if (!empty($ids) && !$conn->executeQuery($query)) {
                 throw new RuntimeException('Failed to remove old closures');
             }
         }
