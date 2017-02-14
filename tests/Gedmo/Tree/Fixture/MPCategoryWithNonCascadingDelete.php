@@ -46,6 +46,12 @@ class MPCategoryWithNonCascadingDelete
     private $level;
 
     /**
+     * @Gedmo\TreeRoot
+     * @ORM\Column(name="tree_root_value", type="string", nullable=true)
+     */
+    private $treeRootValue;
+
+    /**
      * @ORM\OneToMany(targetEntity="MPCategoryWithNonCascadingDelete", mappedBy="parent")
      */
     private $children;
@@ -93,5 +99,10 @@ class MPCategoryWithNonCascadingDelete
     public function getLevel()
     {
         return $this->level;
+    }
+
+    public function getTreeRootValue()
+    {
+        return $this->treeRootValue;
     }
 }

@@ -186,7 +186,7 @@ abstract class AbstractMaterializedPath implements Strategy
     public function processPreRemove($om, $node)
     {
         $this->processPreLockingActions($om, $node, self::ACTION_REMOVE);
-        
+
         $meta = $om->getClassMetadata(get_class($node));
         $config = $this->listener->getConfiguration($om, $meta->name);
         $this->reparentChildNodes($om, $meta, $config, $node);
@@ -315,6 +315,27 @@ abstract class AbstractMaterializedPath implements Strategy
             $pathHashProp->setAccessible(true);
             $pathHashProp->setValue($node, $pathHash);
             $changes[$config['path_hash']] = array(null, $pathHash);
+        }
+
+        if (isset($config['root'])) {
+            $root = null;
+
+            // Define the root value by grabbing the top of the current path
+            $rootFinderPath = explode($config['path_separator'], $path);
+            $rootIndex = $config['path_starts_with_separator'] ? 1 : 0;
+            $root = $rootFinderPath[$rootIndex];
+
+            // If it is an association, then make it an reference
+            // to the entity
+            if ($meta->hasAssociation($config['root'])) {
+                $rootClass = $meta->getAssociationTargetClass($config['root']);
+                $root = $om->getReference($rootClass, $root);
+            }
+
+            $rootProp = $meta->getReflectionProperty($config['root']);
+            $rootProp->setAccessible(true);
+            $rootProp->setValue($node, $root);
+            $changes[$config['root']] = array(null, $root);
         }
 
         if (isset($config['level'])) {
